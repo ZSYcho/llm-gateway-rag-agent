@@ -1,0 +1,6 @@
+# 构建产物 / 运行时 / 本地缓存
+bin/
+deploy/new-api/new-api
+.image-cache/
+runtime/
+.env

@@ -1,0 +1,7 @@
+[submodule "repos/gemini-fullstack-langgraph-quickstart"]
+	path = repos/gemini-fullstack-langgraph-quickstart
+	url = https://github.com/ZSYcho/gemini-fullstack-langgraph-quickstart.git
+	branch = gateway-integration
+[submodule "repos/new-api"]
+	path = repos/new-api
+	url = https://github.com/ZSYcho/new-api.git
