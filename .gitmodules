@@ -5,3 +5,4 @@
 [submodule "repos/new-api"]
 	path = repos/new-api
 	url = https://github.com/ZSYcho/new-api.git
+	branch = agent-cost-attribution

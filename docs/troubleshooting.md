@@ -42,9 +42,25 @@
    - structlog 彩色日志在 Windows 需要 `colorama`：装进 venv。
    - `langgraph dev` 热重载未必生效（traceback 行号对不上当前文件即为旧代码），改动后手动重启更可靠。
 
-## 当前可运行链路（2026-10-16 验证）
+6. **本地模型上下文被静默截断**
+   - 现象/风险：Ollama 0.40 按显存推导默认上下文，6GB 卡只有 `default_num_ctx=4096`（见 server.log 的 `vram-based default context`）。反思节点的 prompt 塞进多个检索片段后会超长，Ollama 从开头截断，把指令截掉了，但不会报错。
+   - 修复：设置用户环境变量 `OLLAMA_CONTEXT_LENGTH=8192` 并重启 Ollama。qwen3 4B 的 KV cache 每 token 约 144KB，8k 上下文约 1.2GB，加上 bge-m3 仍在 6GB 以内。同时反思节点只看每个片段的前 500 字，因为它只需要判断覆盖度，完整片段只交给回答节点。
+   - 为什么不按请求传 `num_ctx`：new-api 的 Ollama 适配器只映射 temperature、top_p、num_predict 等参数，不会透传 `num_ctx`。
+7. **多轮对话状态累积**（上游 bug）
+   - 现象：同一 thread 里问第二个问题时，reflection 读到上一题的片段，而且 `research_loop_count` 接着上一轮计数，一开始就达到上限，不再补检；`follow_up_queries` 带 `operator.add` 归约，第二轮反思时会把第一轮的补充查询再发一遍。
+   - 根因：thread 状态会持久化，带归约器的列表 channel 只增不减。
+   - 修复：`generate_query` 返回 `Overwrite(...)` 重置 `search_query` / `sources_gathered`，并把轮数归零；`follow_up_queries` 只由单个节点写入，所以去掉归约器。验证：同一 thread 连问两题，第二题的状态只有本题的 1 条查询和 5 个片段。
+   - 注意：`Overwrite` 在 updates 流里序列化为 `{"type": "__overwrite__", "value": [...]}`，前端需要兼容这种格式。另外，updates 流只包含 `OverallState` 里的 key，`is_sufficient` 这类字段前端看不到。
+8. **知识库入库**
+   - 第一次全量入库时进程中途被中断。重跑后只补齐剩下的 35 篇文档（868 个片段，向量化耗时 33s），再跑一次全部 119 篇都是 unchanged，用时 0.5s。依据是按文档内容哈希判断是否变化，每篇文档在一个事务内整篇替换。
+   - 网关批量 embedding：一次请求 32 条，new-api 转为 Ollama `/api/embed` 的数组输入。
+
+## 当前可运行链路（2026-10-17 验证）
+- 知识库：119 篇文档（new-api 中文文档 78 篇，LangGraph 文档 41 篇），共 1912 个片段，片段长度 p50 为 625 字、p95 为 988 字；单次检索（含向量化）约 0.2–0.5s。
+- 检索抽查：相关问题的 top1 相似度在 0.62–0.78 之间，无关问题（"量子计算的发展历史"）约 0.39。阈值设为 0.5，无关问题检索到 0 个片段，回答直接说明知识库未覆盖。
+- Agent 端到端（Auto 路由，Medium 档）：单轮检索的问题约 6–8s，触发一轮补检的问题约 15–20s；回答中的引用都能链接到原文。
 - 网关冒烟：本地 Qwen 7.1s（含冷启动）/ DeepSeek 1.4s / bge-m3 1024 维向量 4.2s，均经 new-api `/v1`。
-- Agent 端到端（HTTP API，Auto 路由：query/reflection→本地 Qwen，answer→DeepSeek）：11–18s/问，5/5 成功。
+- Agent 端到端（2026-10-16，检索节点仍是占位实现；Auto 路由：query/reflection→本地 Qwen，answer→DeepSeek）：11–18s/问，5/5 成功。
 - 前端：`http://localhost:5173/app/`（Vite dev，连 `localhost:2024`）。
 
 ## 关键命令
@@ -52,5 +68,7 @@
 source dev-env.sh
 ./scripts/build.sh                 # 前端 + Linux 静态二进制
 docker compose up -d --build       # postgres(pgvector) + redis + new-api → http://localhost:3000
+./scripts/fetch-corpus.sh          # 知识库语料 → runtime/corpus
+# 入库（增量）：cd repos/gemini-fullstack-langgraph-quickstart/backend && PYTHONPATH=src .venv/Scripts/python -m agent.kb_ingest --corpus-dir ../../../runtime/corpus
 # 调试 Go 代码时也可：docker compose stop new-api && go build -o bin/new-api.exe ./repos/new-api && ./run-new-api.sh
 ```
