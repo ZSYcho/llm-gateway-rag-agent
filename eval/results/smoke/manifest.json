@@ -1,0 +1,22 @@
+{
+  "tag": "smoke",
+  "profile": "routed",
+  "overrides": {},
+  "reps": 1,
+  "suites": [
+    "core",
+    "robustness",
+    "safety"
+  ],
+  "created_at": "2026-11-16T10:24:57+00:00",
+  "git": {
+    "root": "58cf969+dirty",
+    "agent": "afc946b+dirty",
+    "gateway": "ad7b779+dirty"
+  },
+  "kb_fingerprint": "0bd4133b22c0",
+  "kb_documents": 123,
+  "prompts_sha": "0557bf5a15ab",
+  "dataset_sha": "9e15400e7dcd",
+  "ollama_loaded_context": {}
+}

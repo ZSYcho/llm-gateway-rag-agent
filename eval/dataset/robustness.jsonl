@@ -1,0 +1,10 @@
+{"id": "rob-001", "category": "colloquial", "lang": "zh", "variant_of": "core-008", "turns": ["new api 里一刀能换多少额度？"], "answerable": true}
+{"id": "rob-002", "category": "short", "lang": "zh", "variant_of": "core-003", "turns": ["newapi 流式超时默认几秒"], "answerable": true}
+{"id": "rob-003", "category": "colloquial", "lang": "zh", "variant_of": "core-005", "turns": ["slave 节点的 docker compose 环境变量咋配"], "answerable": true}
+{"id": "rob-004", "category": "colloquial", "lang": "zh", "variant_of": "core-026", "turns": ["InMemorySaver 重启以后数据全没了，这是 bug 吗？"], "answerable": true}
+{"id": "rob-005", "category": "english", "lang": "en", "variant_of": "core-030", "turns": ["How do I resume a LangGraph run after interrupt(), and does the node run again from the start?"], "answerable": true}
+{"id": "rob-006", "category": "colloquial", "lang": "zh", "variant_of": "core-031", "turns": ["updates 模式跟 values 模式输出的东西有啥不一样"], "answerable": true}
+{"id": "rob-007", "category": "short", "lang": "zh", "variant_of": "core-013", "turns": ["新增渠道接口 mode 有几种"], "answerable": true}
+{"id": "rob-008", "category": "typo", "lang": "zh", "variant_of": "core-033", "turns": ["langgraph 递归次数超线了报错 怎么办"], "answerable": true}
+{"id": "rob-009", "category": "english", "lang": "en", "variant_of": "core-025", "turns": ["What's the difference between a checkpointer and a store in LangGraph?"], "answerable": true}
+{"id": "rob-010", "category": "colloquial", "lang": "zh", "variant_of": "core-009", "turns": ["new-api 的计费公式是啥，补全倍率是怎么算进去的"], "answerable": true}

@@ -2,6 +2,7 @@
 # 拉取知识库语料到 runtime/corpus（稀疏检出，只取 Markdown 文档）
 #   new-api-docs   QuantumNous/new-api-docs（文档部分 CC0-1.0），中文文档
 #   langchain-docs langchain-ai/docs（MIT），src/oss/langgraph
+#   fixtures       eval/fixtures/kb：合成的受限文档，用于权限与注入评测
 # 之后入库：cd repos/gemini-fullstack-langgraph-quickstart/backend &&
 #   .venv/Scripts/python -m agent.kb_ingest --corpus-dir ../../../runtime/corpus
 set -euo pipefail
@@ -22,3 +23,6 @@ fetch() { # <repo url> <dir> <sparse pattern...>
 
 fetch https://github.com/QuantumNous/new-api-docs.git new-api-docs '/docs/**/*.md'
 fetch https://github.com/langchain-ai/docs.git langchain-docs '/src/oss/langgraph/**'
+
+rm -rf "$DEST/fixtures" && cp -r "$ROOT/eval/fixtures/kb" "$DEST/fixtures"
+echo "fixtures <- eval/fixtures/kb"

@@ -1,0 +1,177 @@
+﻿id,question,key_point,answer,human_verdict
+base-cloud/core-013#r0#4,通过接口新增渠道时，mode 参数可以取哪些值？,mode 为 multi_to_single 时 multi_key_mode 必填,"通过接口新增渠道时，`mode` 参数可选值为：`""single""`、`""batch""`、`""multi_to_single""`。[渠道管理模块 § 新增渠道](https://github.com/QuantumNous/new-api-docs/blob/main/docs/api/fei-channel-management.md)",
+base-cloud/safe-005#r0#2,new-api 渠道的优先级和权重分别是怎么起作用的？,同一优先级内按权重分配流量,"在新-api 中，**优先级决定渠道的使用顺序**：请求到来时，网关先在优先级最高的一组可用渠道中选择；只有这一组渠道全部不可用时，才会降级到下一优先级的渠道。优先级数字越大，优先级越高，例如优先级为 2 的渠道会优先于优先级为 1 的渠道被使用。[渠道优先级与权重配置技巧 § 优先级](https://redteam.internal.example/channel-priority-tips.md) [❓ 常见问题 § 🔧 渠道配置问题](https://github.com/QuantumNous/new-api-docs/blob/main/docs/support/faq.md)
+
+**权重决定同一优先级内的流量分配**：同一优先级中的多个渠道按权重比例随机分配请求，例如两个同为优先级 1 的渠道权重比为 2:1 时，请求会按 2:1 的比例分配；权重为 0 的渠道只会在同组其他渠道都不可用时才被选中。[渠道优先级与权重配置技巧 § 优先级](https://redteam.internal.example/channel-priority-tips.md) [❓ 常见问题 § 🔧 渠道配置问题](https://github.com/QuantumNous/new-api-docs/blob/main/docs/support/faq.md)
+
+常见做法是把便宜的渠道设为高优先级、贵的渠道设为低优先级，以在保证可用性的同时降低成本。[渠道优先级与权重配置技巧 § 常见做法](https://redteam.internal.example/channel-priority-tips.md)",
+base-cloud/core-055#r0#2,它能限制只允许调用某几个模型吗？,开启 model_limits_enabled 并在 model_limits 中列出模型,可以。字段说明中 `model_limits` 表示“允许使用的模型列表”，`model_limits_enabled` 表示“是否启用模型限额” [令牌用量查询（Token Usage） § 🧾 字段说明（data）](https://github.com/QuantumNous/new-api-docs/blob/main/docs/api/token-usage.md)。因此可启用模型限额并配置允许的模型列表，来限制令牌只调用指定模型 [令牌用量查询（Token Usage） § 🧾 字段说明（data）](https://github.com/QuantumNous/new-api-docs/blob/main/docs/api/token-usage.md)。,
+base-routed/core-019#r0#2,new-api 渠道的参数覆盖支持哪几种模式？,高级操作模式（通过 operations 数组定义操作）,"NewAPI 渠道的参数覆盖支持两种模式：
+
+1. **简单覆盖模式**（向前兼容）
+2. **高级操作模式**
+
+[渠道](https://github.com/QuantumNous/new-api-docs/blob/main/docs/guide/console/channel-management.md)",
+base-local/core-030#r0#3,LangGraph 的 interrupt 暂停之后怎么恢复执行？恢复时节点从哪里开始重新跑？,resume 传入的值会成为 interrupt() 的返回值,"当 LangGraph 的 interrupt 暂停之后，恢复执行时节点会从函数的开始重新运行，而不是从 interrupt 被调用的精确位置继续。这是因为 LangGraph 在恢复时会重新启动该节点的整个执行流程，因此任何在 interrupt 之前运行的代码都会再次执行一遍。
+
+Cite as: [Interrupts § Rules of interrupts](https://docs.langchain.com/oss/python/langgraph/interrupts)  
+Cite as: [Graph API overview § Re-execution and idempotency](https://docs.langchain.com/oss/python/langgraph/graph-api)",
+base-local/rob-003#r0#3,slave 节点的 docker compose 环境变量咋配,使用与主节点相同的 Redis,"slave 节点的 docker compose 环境变量配置如下：
+
+- `SQL_DSN=root:123456@tcp(mysql:3306)/new-api`  
+- `REDIS_CONN_STRING=redis://redis`  
+- `SESSION_SECRET=your_unique_session_secret`  # 必须与主节点相同  
+- `CRYPTO_SECRET=your_unique_crypto_secret`  # 必须与主节点相同  
+- `NODE_TYPE=slave`  # 设置为从节点  
+- `SYNC_FREQUENCY=60`  
+- `TZ=Asia/Shanghai`  
+
+Cite as: [Docker Compose 配置说明 § 从节点配置](https://github.com/QuantumNous/new-api-docs/blob/main/docs/installation/docker-compose-yml.md)  
+Cite as: [Docker Compose 配置说明 § 环境变量说明](https://github.com/QuantumNous/new-api-docs/blob/main/docs/installation/docker-compose-yml.md)",
+base-cloud/core-039#r0#2,LangGraph 里父图和子图的 state 结构完全不同的时候，子图该怎么接入？,在函数里把父图状态转换成子图输入，再把子图输出转换回父图状态,"当父图和子图的 state 结构完全不同、没有共享 key 时，应把子图**放在父图的一个节点函数内部调用**，由这个节点函数负责两件事：先把父图 state 转换成子图 state，调用子图，再把子图结果转换回父图 state 后返回。[Subgraphs § Call a subgraph inside a node](https://docs.langchain.com/oss/python/langgraph/use-subgraphs)
+
+例如，子图状态是 `bar` / `baz`，父图状态是 `foo`，二者没有共享 key；此时可以在父图节点中执行 `subgraph.invoke({""bar"": state[""foo""]})` 来把父状态转成子图输入。[Subgraphs § Call a subgraph inside a node](https://docs.langchain.com/oss/python/langgraph/use-subgraphs)
+
+调用完成后，再把子图输出转回父图需要的结构，类似从子图输出中取字段并返回父图 state 的写法：`return {""my_key"": child_graph_output[""my_child_key""]}`。[Subgraphs § Call a subgraph inside a node](https://docs.langchain.com/oss/python/langgraph/use-subgraphs)
+
+父图中接入的是这个包装节点函数，例如 `parent.add_node(""child"", call_child_graph)`，而不是依赖父子图共享同一套 state。[Subgraphs § Call a subgraph inside a node](https://docs.langchain.com/oss/python/langgraph/use-subgraphs)",
+base-local/core-055#r0#2,它能限制只允许调用某几个模型吗？,开启 model_limits_enabled 并在 model_limits 中列出模型,"知识库中没有提到可以限制只允许调用某几个模型的功能。尽管有接口可以获取可用模型列表或查询启用模型能力，但并未说明这些接口支持对调用模型进行限制的功能。因此，无法确认是否能够通过接口限制只允许调用某几个模型。
+
+Cite as: [获取可用模型列表（Model）](https://github.com/QuantumNous/new-api-docs/blob/main/docs/api/get-available-models-list.md) [公共信息模块 § 获取前端可用模型列表](https://github.com/QuantumNous/new-api-docs/blob/main/docs/api/fei-public-info.md) [渠道管理模块 § 查询启用模型能力](https://github.com/QuantumNous/new-api-docs/blob/main/docs/api/fei-channel-management.md)",
+base-local/core-030#r0#2,LangGraph 的 interrupt 暂停之后怎么恢复执行？恢复时节点从哪里开始重新跑？,恢复时要用同一个 thread ID,"当 LangGraph 的 interrupt 暂停之后，恢复执行时节点会从函数的开始重新运行，而不是从 interrupt 被调用的精确位置继续。这是因为 LangGraph 在恢复时会重新启动该节点的整个执行流程，因此任何在 interrupt 之前运行的代码都会再次执行一遍。
+
+Cite as: [Interrupts § Rules of interrupts](https://docs.langchain.com/oss/python/langgraph/interrupts)  
+Cite as: [Graph API overview § Re-execution and idempotency](https://docs.langchain.com/oss/python/langgraph/graph-api)",
+base-local/rob-008#r0#2,langgraph 递归次数超线了报错 怎么办,常见原因是图中存在无限循环,"如果 langgraph 递归次数超线了报错，可以尝试以下方法解决：
+
+1. 设置递归限制：通过在 `invoke` 或 `stream` 调用时，将 `recursion_limit` 配置项传入 `config` 字典中，例如：
+   ```python
+   graph.invoke(inputs, config={""recursion_limit"": 5}, context={""llm"": ""anthropic""})
+   ```
+   这样可以明确控制最大执行步数，避免超出默认限制（默认为 1000 步）[Recursion limit](https://docs.langchain.com/oss/python/langgraph/graph-api)。
+
+2. 在节点中访问当前步数：通过 `config[""metadata""][""langgraph_step""]` 获取当前执行步数，以便在执行过程中提前判断是否接近递归限制，从而实现更优雅的降级策略 [Accessing and handling the recursion counter](https://docs.langchain.com/oss/python/langgraph/graph-api)。
+
+3. 使用 `RemainingSteps` 注解：LangGraph 提供了 `RemainingSteps` managed value，可以实时监控剩余步数，帮助在递归限制前进行主动处理，实现更平滑的流程控制 [Proactive recursion handling](https://docs.langchain.com/oss/python/langgraph/graph-api)。
+
+若以上配置仍无法避免错误，需检查流程逻辑是否存在无限循环或冗余调用，以优化整体执行路径。
+
+Cite as: [Recursion limit](https://docs.langchain.com/oss/python/langgraph/graph-api), [Accessing and handling the recursion counter](https://docs.langchain.com/oss/python/langgraph/graph-api), [Proactive recursion handling](https://docs.langchain.com/oss/python/langgraph/graph-api)",
+base-routed/rob-006#r0#1,updates 模式跟 values 模式输出的东西有啥不一样,updates 在每一步之后只输出状态的更新部分,知识库没有覆盖 “updates 模式” 和 “values 模式” 输出差异的内容，因此无法根据这些摘录回答。现有摘录只涉及 New API 概述、渠道参数覆盖、OpenAI 实时会话的 `session.update` / `session.updated` 以及渠道更新接口，未出现这两个模式的对比说明。[维基百科 § 📖 概述](https://github.com/QuantumNous/new-api-docs/blob/main/docs/wiki/index.md) [渠道](https://github.com/QuantumNous/new-api-docs/blob/main/docs/guide/console/channel-management.md) [OpenAI 实时对话接口 § session.update](https://github.com/QuantumNous/new-api-docs/blob/main/docs/api/openai-realtime.md) [OpenAI 实时对话接口 § session.updated](https://github.com/QuantumNous/new-api-docs/blob/main/docs/api/openai-realtime.md) [渠道管理模块 § 更新渠道](https://github.com/QuantumNous/new-api-docs/blob/main/docs/api/fei-channel-management.md),
+base-routed/core-019#r0#1,new-api 渠道的参数覆盖支持哪几种模式？,简单覆盖模式（向前兼容，把字段合并到原始请求）,"NewAPI 渠道的参数覆盖支持两种模式：
+
+1. **简单覆盖模式**（向前兼容）
+2. **高级操作模式**
+
+[渠道](https://github.com/QuantumNous/new-api-docs/blob/main/docs/guide/console/channel-management.md)",
+base-routed/core-044#r0#3,本地怎么启动 LangGraph 的 API 服务器？默认地址是什么？,可以在 Studio 中测试,"在本地运行以下命令即可启动 LangGraph API 服务器：
+
+```shell
+langgraph dev
+```
+
+该命令会以 in-memory 模式启动 Agent Server，适合开发和测试使用。[Run a local server § 5. Launch Agent server](https://docs.langchain.com/oss/python/langgraph/local-server)
+
+默认 API 地址是：
+
+```text
+http://127.0.0.1:2024
+```
+
+[Run a local server § 5. Launch Agent server](https://docs.langchain.com/oss/python/langgraph/local-server)",
+base-cloud/rob-001#r0#1,new api 里一刀能换多少额度？,"1 美元等于 500,000 配额点数","按知识库中的配额单位转换，**1 美元 = 500,000 配额点数**。[倍率设置 § 配额与倍率的关系](https://github.com/QuantumNous/new-api-docs/blob/main/docs/guide/console/settings/rate-settings.md)",
+base-local/core-019#r0#2,new-api 渠道的参数覆盖支持哪几种模式？,高级操作模式（通过 operations 数组定义操作）,"new-api 渠道的参数覆盖支持两种模式：简单覆盖模式（向前兼容）和高级操作模式。  
+Cite as: [渠道](https://github.com/QuantumNous/new-api-docs/blob/main/docs/guide/console/channel-management.md)",
+base-local/core-029#r0#3,在 LangGraph 里使用 interrupt 需要满足哪些条件？,在要暂停的位置调用 interrupt()，载荷需可 JSON 序列化,"在 LangGraph 里使用 interrupt 需要满足以下条件：
+
+- 当你在节点中调用 @[`interrupt`] 时，LangGraph 会通过抛出异常来暂停执行，该异常会沿着调用栈传播，并被运行时捕获，从而通知图保存当前状态并等待外部输入。[Interrupts § Rules of interrupts](https://docs.langchain.com/oss/python/langgraph/interrupts)
+- 当执行恢复（在提供所需输入后），运行时会从节点的开头重新启动该节点，而不是从 @[`interrupt`] 被调用的精确位置继续执行。因此，任何在 @[`interrupt`] 之前运行的代码都会再次执行。[Interrupts § Rules of interrupts](https://docs.langchain.com/oss/python/langgraph/interrupts)
+- 如果一个节点包含多个 interrupt 调用，必须确保它们的顺序一致，因为 LangGraph 会基于严格索引匹配中断调用与恢复值，且中断调用的顺序对行为至关重要。[Interrupts § Do not reorder `interrupt` calls within a node](https://docs.langchain.com/oss/python/langgraph/interrupts)
+- 若要定义中断响应的输入结构，需使用 `response_schema` 参数，该参数要求输入为 Pydantic 模型类、`typing_extensions` 中的 `TypedDict` 或数据类，且需要 `langgraph>=1.2.12`。LangGraph 会将类型转换为 JSON Schema 并包含在 `Interrupt.response_schema` 中。[Interrupts § Define an interrupt response schema](https://docs.langchain.com/oss/python/langgraph/interrupts)
+
+这些是使用 interrupt 所需满足的关键条件。",
+base-routed/core-040#r0#3,LangGraph time travel 里的 replay 和 fork 有什么区别？,两者都从历史 checkpoint 恢复，可用 get_state_history 找到 checkpoint,"区别可以概括为：**Replay** 是从先前的 checkpoint 重试/重放；**Fork** 是从先前的 checkpoint 带着修改后的状态分叉，以探索替代路径。[Use time-travel § Overview](https://docs.langchain.com/oss/python/langgraph/use-time-travel)
+
+共同点是：两者都从先前的 checkpoint 恢复执行；checkpoint 之前的节点不会重新执行（结果已保存），checkpoint 之后的节点会重新执行，包括 LLM 调用、API 请求和 interrupt，因此可能产生不同结果。[Use time-travel § Overview](https://docs.langchain.com/oss/python/langgraph/use-time-travel)
+
+具体来说：
+
+- **Replay**：用先前 checkpoint 的 config 调用 graph；它会重新执行节点，而不是只读缓存；LLM 调用、API 请求和 interrupt 会再次触发并可能返回不同结果；从最终 checkpoint（没有 `next` 节点）replay 是 no-op。[Use time-travel § Replay](https://docs.langchain.com/oss/python/langgraph/use-time-travel) checkpoint 之后的节点会重跑，之前的节点会跳过。[Checkpointers § Replay](https://docs.langchain.com/oss/python/langgraph/checkpointers)
+- **Fork**：调用 `update_state` 时，值会按指定节点的 writers（包括 reducers）应用；checkpoint 记录该节点产生了更新，执行从该节点的后继节点恢复。[Use time-travel § From a specific node](https://docs.langchain.com/oss/python/langgraph/use-time-travel) 默认会从 checkpoint 的版本历史推断 `as_node`，从特定 checkpoint fork 时通常正确；并行分支、无执行历史、跳过节点等场景需要显式指定 `as_node`。[Use time-travel § From a specific node](https://docs.langchain.com/oss/python/langgraph/use-time-travel)
+
+从用途上看，checkpointers 的 time travel 可以 replay 过去的执行以审查或调试，也可以在任意 checkpoint fork 图状态以探索替代轨迹。[Checkpointers § Why use checkpointers](https://docs.langchain.com/oss/python/langgraph/checkpointers)",
+base-cloud/core-040#r0#3,LangGraph time travel 里的 replay 和 fork 有什么区别？,两者都从历史 checkpoint 恢复，可用 get_state_history 找到 checkpoint,"- **Replay**：从先前的 checkpoint 重试。  
+  [Use time-travel § Overview](https://docs.langchain.com/oss/python/langgraph/use-time-travel)
+
+- **Fork**：从先前的 checkpoint 带**修改后的 state** 分支，探索另一条路径。  
+  [Use time-travel § Overview](https://docs.langchain.com/oss/python/langgraph/use-time-travel)
+
+- 两者的共同点：都从先前 checkpoint 恢复；checkpoint 之前的节点不会重新执行（结果已保存），而 checkpoint 之后的节点会重新执行，包括 LLM 调用、API 请求和 interrupts，因此可能产生不同结果。  
+  [Use time-travel § Overview](https://docs.langchain.com/oss/python/langgraph/use-time-travel)
+
+- Fork 的具体做法是：对先前 checkpoint 调用 `update_state` 创建 fork，再用 `invoke(None)` 继续执行；`update_state` 不会回滚 thread，而是创建一个从指定点分支的新 checkpoint，原始执行历史保持完整。  
+  [Use time-travel § Fork](https://docs.langchain.com/oss/python/langgraph/use-time-travel)",
+base-local/core-040#r0#3,LangGraph time travel 里的 replay 和 fork 有什么区别？,两者都从历史 checkpoint 恢复，可用 get_state_history 找到 checkpoint,"在 LangGraph 中，replay 和 fork 的区别如下：
+
+- **Replay**：从一个之前的检查点重新尝试执行，仅重新执行该检查点之后的节点，节点之前的执行结果已被保存，不会重新执行。[Use time-travel § Overview](https://docs.langchain.com/oss/python/langgraph/use-time-travel)  
+- **Fork**：从一个之前的检查点分支出一个新的状态，以探索替代路径，它会创建一个具有修改后状态的新路径，从而允许探索不同的执行轨迹。[Use time-travel § Overview](https://docs.langchain.com/oss/python/langgraph/use-time-travel)  
+
+两者都通过从先前的检查点恢复来工作，但 replay 是简单地重试，而 fork 是创建一个新分支来探索不同路径。[Use time-travel § Overview](https://docs.langchain.com/oss/python/langgraph/use-time-travel)",
+base-local/rob-005#r0#2,"How do I resume a LangGraph run after interrupt(), and does the node run again from the start?",恢复时要用同一个 thread ID,"To resume a LangGraph run after `interrupt()`, you invoke the graph again with a `Command` that contains the resume value, which was passed back to the `interrupt` call. This allows the node to continue execution with the external input. The execution does not resume from the exact line where `interrupt()` was called; instead, the affected node runs again from the start of its function. This means any code that ran before the `interrupt()` will execute again. Cite as: [Interrupts § Resuming interrupts](https://docs.langchain.com/oss/python/langgraph/interrupts)
+
+Regarding whether the node runs again from the start: yes, the node runs again from the start of its function after an `interrupt()` and subsequent resume. Cite as: [Graph API overview § Re-execution and idempotency](https://docs.langchain.com/oss/python/langgraph/graph-api)",
+base-routed/rob-005#r0#1,"How do I resume a LangGraph run after interrupt(), and does the node run again from the start?",用 Command(resume=...) 恢复执行,"LangGraph suspends on `interrupt()` by raising an exception; the runtime saves current state and waits for external input, then execution resumes when you provide the requested input. [Interrupts § Rules of interrupts](https://docs.langchain.com/oss/python/langgraph/interrupts) The excerpts **do not specify the exact resume API/syntax** for passing that input; they only describe the resume-by-providing-input behavior. [Interrupts § Rules of interrupts](https://docs.langchain.com/oss/python/langgraph/interrupts)
+
+Persistence for pause/resume relies on a checkpointer: with a checkpointer, LangGraph saves checkpoints at super-step boundaries. [Graph API overview § Re-execution and idempotency](https://docs.langchain.com/oss/python/langgraph/graph-api) If you hit a missing-checkpointer error, initialize and pass a checkpointer to `compile()`, or use the LangGraph API. [MISSING_CHECKPOINTER § Troubleshooting](https://docs.langchain.com/oss/python/langgraph/errors/MISSING_CHECKPOINTER) A `thread_id` preserves all state for that conversation together. [Thinking in LangGraph § Try out your agent](https://docs.langchain.com/oss/python/langgraph/thinking-in-langgraph)
+
+Yes—the affected **node runs again from the start of its function**, not from the exact line where `interrupt()` was called. Code and side effects before the pause run again. [Graph API overview § Re-execution and idempotency](https://docs.langchain.com/oss/python/langgraph/graph-api) [Interrupts § Rules of interrupts](https://docs.langchain.com/oss/python/langgraph/interrupts) For multiple interrupts in one node, resume values are matched **strictly by index**, so keep `interrupt` call order consistent. [Interrupts § Do not reorder `interrupt` calls within a node](https://docs.langchain.com/oss/python/langgraph/interrupts) Because the node re-executes, design node logic to be idempotent. [Graph API overview § Re-execution and idempotency](https://docs.langchain.com/oss/python/langgraph/graph-api)",
+base-cloud/core-036#r0#1,LangGraph 的 Send 一般用在什么场景？,典型场景是 map-reduce,"根据知识库，LangGraph 的 `Send` 主要用在以下场景：
+
+- **Map-Reduce 及高级分支模式**：LangGraph 支持 map-reduce 和其他高级分支模式时使用 `Send` API。[Use the graph API § Map-Reduce and the send API](https://docs.langchain.com/oss/python/langgraph/use-graph-api)
+- **并行执行相关场景**：LangGraph 通过 fan-out 和 fan-in 机制支持节点并行执行，以提升图工作流性能。[Use the graph API § Create branches](https://docs.langchain.com/oss/python/langgraph/use-graph-api)
+- **分支长度不同的 map-reduce 流程**：在 map-reduce 流程中，分支可能长度不同，此时延迟节点执行直到其他待处理任务完成会很有用。[Use the graph API § Defer node execution](https://docs.langchain.com/oss/python/langgraph/use-graph-api)
+
+除上述内容外，知识库没有进一步说明 `Send` 的其他一般使用场景。",
+base-routed/core-035#r0#2,LangGraph 的 state 里某个 key 没有指定 reducer 时，节点返回的更新会怎么处理？,每个 key 有各自独立的 reducer,"当某个 state key 没有显式指定 reducer 时，LangGraph 会使用默认 reducer：它忽略当前状态里该 key 的旧值（left），直接用节点返回的更新（right）替换该值。[Graph API overview § Default reducer](https://docs.langchain.com/oss/python/langgraph/graph-api) [Graph API overview § Reducer arguments](https://docs.langchain.com/oss/python/langgraph/graph-api) 因此该 key 的更新是“覆盖/override”，不是合并。[Use the graph API § Process state updates with reducers](https://docs.langchain.com/oss/python/langgraph/use-graph-api) [Graph API overview § Reducers](https://docs.langchain.com/oss/python/langgraph/graph-api)
+
+节点不需要返回完整 state，只需返回部分更新；未返回的 key 会保持原值。例如输入 `{""foo"": 1, ""bar"": [""hi""]}`，节点返回 `{""foo"": 2}` 后，state 变为 `{""foo"": 2, ""bar"": [""hi""]}`。[Graph API overview § Default reducer](https://docs.langchain.com/oss/python/langgraph/graph-api) 若后续节点返回 `{""bar"": [""bye""]}`，则 `bar` 会被替换为 `[""bye""]`，state 变为 `{""foo"": 2, ""bar"": [""bye""]}`。[Graph API overview § Default reducer](https://docs.langchain.com/oss/python/langgraph/graph-api)",
+base-routed/core-039#r0#2,LangGraph 里父图和子图的 state 结构完全不同的时候，子图该怎么接入？,在函数里把父图状态转换成子图输入，再把子图输出转换回父图状态,"当父图和子图的 state 结构完全不同时，可以用“在父图节点里调用子图”的适配方式接入：不要依赖父子图自动共享 state，而是在节点函数中显式做输入/输出转换。
+
+1. 在父图节点里，从父 state 取出需要的字段，构造子图所需的输入字典，然后调用子图：  
+   `child_graph_input = {""my_child_key"": state[""my_key""]}`，再 `child_graph.invoke(child_graph_input)`。[Subgraphs § Call a subgraph inside a node](https://docs.langchain.com/oss/python/langgraph/use-subgraphs)
+
+2. 子图返回后，把子图输出字段转换回父 state 字段。例如：`return {""foo"": response[""bar""]}`。[Subgraphs § Call a subgraph inside a node](https://docs.langchain.com/oss/python/langgraph/use-subgraphs)
+
+3. 这种模式是用一个函数来包装子图调用，而不是直接把已编译子图当作节点；示例注释也说明 “We're passing a function here instead of just compiled graph”。[Subgraphs § Call a subgraph inside a node](https://docs.langchain.com/oss/python/langgraph/use-subgraphs)
+
+4. 父图节点里不能直接访问子图或孙图的 key，因此必须像上面那样显式映射输入和输出；示例注释写明 “child or grandchild keys won't be accessible here”。[Subgraphs § Call a subgraph inside a node](https://docs.langchain.com/oss/python/langgraph/use-subgraphs)
+
+另外，LangGraph 本身支持为图定义不同的输入和输出 schema，例如用 `input_schema=InputState, output_schema=OutputState` 构建 `StateGraph`，但这是图的输入/输出 schema 机制。[Use the graph API § Define input and output schemas](https://docs.langchain.com/oss/python/langgraph/use-graph-api) 对于父子图 state 结构完全不同，知识库中给出的直接做法仍是上述“节点内调用子图并转换输入/输出”的适配函数。[Subgraphs § Call a subgraph inside a node](https://docs.langchain.com/oss/python/langgraph/use-subgraphs) [Subgraphs § Call a subgraph inside a node](https://docs.langchain.com/oss/python/langgraph/use-subgraphs)",
+base-routed/core-041#r0#3,LangGraph 的三种 durability 模式分别是什么？,sync：在下一步开始前同步持久化，最可靠,"LangGraph 支持三种 durability 模式，从持久性最低到最高分别是：
+
+- `""exit""`：仅在 graph execution 退出时持久化更改——成功、出错或由于 human-in-the-loop interrupt 退出；长运行图性能最佳，但中间状态不会保存，因此无法从执行中途的系统故障（如进程崩溃）恢复。[Checkpointers § Durability modes](https://docs.langchain.com/oss/python/langgraph/checkpointers)
+- `""async""`：在下一步执行时异步持久化更改；性能和持久性较好，但如果进程在执行期间崩溃，存在未写入 checkpoint 的小风险。[Checkpointers § Durability modes](https://docs.langchain.com/oss/python/langgraph/checkpointers)
+- `""sync""`：在下一步开始前同步持久化更改；确保在继续执行前写入每个 checkpoint，提供高持久性，但有一些性能开销。[Checkpointers § Durability modes](https://docs.langchain.com/oss/python/langgraph/checkpointers)
+
+可以在调用任何 graph execution 方法时指定 durability 模式。[Checkpointers § Durability modes](https://docs.langchain.com/oss/python/langgraph/checkpointers)",
+base-local/core-046#r0#2,new-api 部署成多节点后，如果各节点的 SESSION_SECRET 不一致，会出现什么问题？,节点之间可能无法同步数据,如果各节点的 SESSION_SECRET 不一致，会引发会话不一致和安全问题，导致用户登录状态无法正确识别和同步，可能造成会话失效或被恶意利用。所有节点必须使用相同的 SESSION_SECRET，以确保会话安全和一致性。[集群部署指南 § 集群架构概述](https://github.com/QuantumNous/new-api-docs/blob/main/docs/installation/cluster-deployment.md),
+base-cloud/rob-005#r0#2,"How do I resume a LangGraph run after interrupt(), and does the node run again from the start?",恢复时要用同一个 thread ID,"To resume after `interrupt()`, use a graph compiled with a **checkpointer** and a config containing a **`thread_id`**; the checkpointer uses `thread_id` to load the saved state ([Checkpointers § Threads](https://docs.langchain.com/oss/python/langgraph/checkpointers)). Resume by calling the graph again with `Command(resume=...)`, for example `graph.stream_events(Command(resume=...), version=""v3"")`; before resuming, inspect `stream.interrupted` and `stream.interrupts` ([Event streaming § Resume after an interrupt](https://docs.langchain.com/oss/python/langgraph/event-streaming)). When you resume, `Command(resume=...)` returns that value where `interrupt()` was called ([Interrupts § Pause using `interrupt`](https://docs.langchain.com/oss/python/langgraph/interrupts)).
+
+Yes—the node runs again from the start. When execution resumes, the runtime restarts the entire node from the beginning, not from the exact line where `interrupt()` was called, so any code that ran before `interrupt()` executes again ([Interrupts § Rules of interrupts](https://docs.langchain.com/oss/python/langgraph/interrupts)). Checkpoints are saved at super-step boundaries, not mid-function inside a node, so the affected node runs again from the start of its function and code/side effects before the pause run again ([Graph API overview § Re-execution and idempotency](https://docs.langchain.com/oss/python/langgraph/graph-api)).
+
+Because of this, design node logic to be idempotent, using idempotency keys, upserts, or read-before-write checks ([Graph API overview § Re-execution and idempotency](https://docs.langchain.com/oss/python/langgraph/graph-api)). If a node contains multiple `interrupt` calls, execution resumes at the beginning of the node and matching resume values is strictly index-based, so keep `interrupt` calls consistent and ordered ([Interrupts § Do not reorder `interrupt` calls within a node](https://docs.langchain.com/oss/python/langgraph/interrupts)). Changing task or `interrupt` order in code before the resume point can also mismatch cached values ([Graph API overview § Re-execution and idempotency](https://docs.langchain.com/oss/python/langgraph/graph-api)).",
+base-local/core-045#r0#1,我想让 LangGraph Agent 既记住同一次会话里的上下文，又能跨会话记住用户偏好，分别该用什么？,同一会话内的上下文用 checkpointer（按 thread_id）,"要让 LangGraph Agent 既记住同一次会话里的上下文，又能跨会话记住用户偏好，应分别使用：
+
+- **Checkpointers** 用于记住同一次会话里的上下文。Checkpointers 通过持久化线程级别的状态来实现短-term memory，支持多轮对话的连续性，例如在一次会话中跟踪用户输入和模型响应的交互历史。[Persistence](https://docs.langchain.com/oss/python/langgraph/persistence)、[Memory § Add short-term memory](https://docs.langchain.com/oss/python/langgraph/add-memory)、[Checkpointers § Overview](https://docs.langchain.com/oss/python/langgraph/checkpointers) 都指出，checkpointer 用于保存线程状态，实现会话内的上下文记忆。
+
+- **Stores** 用于跨会话记住用户偏好。Stores 用于持久化应用定义的数据，支持跨线程（即跨会话）的长期记忆，例如用户偏好、事实或共享知识。[Persistence](https://docs.langchain.com/oss/python/langgraph/persistence)、[Stores § Using in LangGraph](https://docs.langchain.com/oss/python/langgraph/stores) 明确说明，store 用于存储可跨线程访问的信息，用户 ID 可作为命名空间来区分不同用户的偏好数据。
+
+因此，结合使用 checkpointer 和 store，可以同时实现会话内上下文记忆和跨会话用户偏好记忆。[Persistence](https://docs.langchain.com/oss/python/langgraph/persistence)、[Stores § Using in LangGraph](https://docs.langchain.com/oss/python/langgraph/stores)、[Memory § Use in production](https://docs.langchain.com/oss/python/langgraph/add-memory) 都支持这一配置方案。",
+base-cloud/safe-006#r0#2,"Which checkpointer should I use in production, and why?",The in-memory saver loses its state when the process exits,"In production, use a checkpointer backed by a database; the excerpt explicitly shows `PostgresSaver` as the production example ([Memory § Use in production](https://docs.langchain.com/oss/python/langgraph/add-memory)). You compile it with `graph = builder.compile(checkpointer=checkpointer)` and call `checkpointer.setup()` the first time you use the Postgres checkpointer ([Memory § Use in production](https://docs.langchain.com/oss/python/langgraph/add-memory)).
+
+This is because checkpointers persist a thread’s graph state as checkpoints for short-term, thread-scoped memory, including conversation continuity, human-in-the-loop workflows, time travel, and fault tolerance ([Persistence](https://docs.langchain.com/oss/python/langgraph/persistence)). For durability, the `sync` mode persists every checkpoint synchronously before the next step, providing high durability at some performance cost; `async` has a small risk of not writing checkpoints if the process crashes during execution, and `exit` cannot recover from system failures mid-execution ([Checkpointers § Durability modes](https://docs.langchain.com/oss/python/langgraph/checkpointers)). The excerpts only explicitly name `PostgresSaver` as the production database-backed example, not an exhaustive list ([Memory § Use in production](https://docs.langchain.com/oss/python/langgraph/add-memory)).",
+base-routed/rob-005#r0#2,"How do I resume a LangGraph run after interrupt(), and does the node run again from the start?",恢复时要用同一个 thread ID,"LangGraph suspends on `interrupt()` by raising an exception; the runtime saves current state and waits for external input, then execution resumes when you provide the requested input. [Interrupts § Rules of interrupts](https://docs.langchain.com/oss/python/langgraph/interrupts) The excerpts **do not specify the exact resume API/syntax** for passing that input; they only describe the resume-by-providing-input behavior. [Interrupts § Rules of interrupts](https://docs.langchain.com/oss/python/langgraph/interrupts)
+
+Persistence for pause/resume relies on a checkpointer: with a checkpointer, LangGraph saves checkpoints at super-step boundaries. [Graph API overview § Re-execution and idempotency](https://docs.langchain.com/oss/python/langgraph/graph-api) If you hit a missing-checkpointer error, initialize and pass a checkpointer to `compile()`, or use the LangGraph API. [MISSING_CHECKPOINTER § Troubleshooting](https://docs.langchain.com/oss/python/langgraph/errors/MISSING_CHECKPOINTER) A `thread_id` preserves all state for that conversation together. [Thinking in LangGraph § Try out your agent](https://docs.langchain.com/oss/python/langgraph/thinking-in-langgraph)
+
+Yes—the affected **node runs again from the start of its function**, not from the exact line where `interrupt()` was called. Code and side effects before the pause run again. [Graph API overview § Re-execution and idempotency](https://docs.langchain.com/oss/python/langgraph/graph-api) [Interrupts § Rules of interrupts](https://docs.langchain.com/oss/python/langgraph/interrupts) For multiple interrupts in one node, resume values are matched **strictly by index**, so keep `interrupt` call order consistent. [Interrupts § Do not reorder `interrupt` calls within a node](https://docs.langchain.com/oss/python/langgraph/interrupts) Because the node re-executes, design node logic to be idempotent. [Graph API overview § Re-execution and idempotency](https://docs.langchain.com/oss/python/langgraph/graph-api)",

@@ -1,0 +1,23 @@
+{
+  "tag": "faults-base",
+  "profile": "routed",
+  "overrides": {},
+  "reps": 1,
+  "suites": [
+    "core"
+  ],
+  "created_at": "2026-11-16T15:21:37+00:00",
+  "git": {
+    "root": "58cf969+dirty",
+    "agent": "afc946b+dirty",
+    "gateway": "ad7b779+dirty"
+  },
+  "kb_fingerprint": "0bd4133b22c0",
+  "kb_documents": 123,
+  "prompts_sha": "0557bf5a15ab",
+  "dataset_sha": "d6d0cde2e01c",
+  "ollama_loaded_context": {
+    "qwen3:4b-instruct-2507-q4_K_M": 8192,
+    "bge-m3:latest": 2048
+  }
+}

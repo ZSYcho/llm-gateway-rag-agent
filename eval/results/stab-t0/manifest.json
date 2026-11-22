@@ -1,0 +1,23 @@
+{
+  "tag": "stab-t0",
+  "profile": "routed",
+  "overrides": {
+    "query_temperature": 0,
+    "reflection_temperature": 0
+  },
+  "reps": 5,
+  "suites": [
+    "core"
+  ],
+  "created_at": "2026-11-17T01:18:42+00:00",
+  "git": {
+    "root": "58cf969+dirty",
+    "agent": "afc946b+dirty",
+    "gateway": "ad7b779+dirty"
+  },
+  "kb_fingerprint": "0bd4133b22c0",
+  "kb_documents": 123,
+  "prompts_sha": "0557bf5a15ab",
+  "dataset_sha": "d6d0cde2e01c",
+  "ollama_loaded_context": {}
+}

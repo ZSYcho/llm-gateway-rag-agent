@@ -4,3 +4,7 @@ deploy/new-api/new-api
 .image-cache/
 runtime/
 .env
+
+# 评测原始记录（报告 report.md 等摘要入库）
+eval/results/**/*.jsonl
+__pycache__/

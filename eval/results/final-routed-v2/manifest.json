@@ -1,0 +1,24 @@
+{
+  "tag": "final-routed-v2",
+  "profile": "routed",
+  "overrides": {},
+  "reps": 1,
+  "suites": [
+    "core",
+    "robustness"
+  ],
+  "created_at": "2026-11-22T06:37:39+00:00",
+  "git": {
+    "root": "58cf969+dirty",
+    "agent": "afc946b+dirty",
+    "gateway": "ad7b779+dirty"
+  },
+  "kb_fingerprint": "0bd4133b22c0",
+  "kb_documents": 123,
+  "prompts_sha": "f77a32fa8fc3",
+  "dataset_sha": "c6f538ccf373",
+  "ollama_loaded_context": {
+    "bge-m3:latest": 2048,
+    "qwen3:4b-instruct-2507-q4_K_M": 8192
+  }
+}
