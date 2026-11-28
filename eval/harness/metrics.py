@@ -26,14 +26,17 @@ def retrieval_metrics(case: dict, turn: dict) -> dict:
     """Evidence coverage at three points of the pipeline, plus rank and precision of the context.
 
     raw:      top-k hits of every retrieval, before the similarity threshold
-    gathered: hits that passed the threshold, across all research loops
+              (with reranking, the reranker's candidates)
+    gathered: hits that passed the threshold (and the reranker's cut), across
+              all research loops
     context:  the chunks shown to the answer model (best max_context_chunks)
     """
     items = relevant_chunks(case)
     raw = {hit["chunk_id"] for entry in turn["retrieval_log"] for hit in entry["hits"]}
     gathered = {source["chunk_id"] for source in turn["sources"]}
     context = turn["context_chunk_ids"]
-    metrics = {"n_gathered": len(gathered), "n_context": len(context)}
+    reranked = bool(turn["sources"]) and all("relevance" in source for source in turn["sources"])
+    metrics = {"n_gathered": len(gathered), "n_context": len(context), "reranked": reranked}
     if not items:
         return metrics
     all_relevant = {chunk_id for item in items for chunk_id in item}

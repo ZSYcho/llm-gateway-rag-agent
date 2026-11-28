@@ -12,6 +12,7 @@
 | postgres（pgvector/pgvector:pg16，库 `new-api` + `kb`）/ redis | 根目录 `docker-compose.yml` | 5432 / 6379 |
 | new-api（Go 网关） | 根目录 `docker-compose.yml`，镜像 `agent-stack/new-api:local`（alpine + 宿主机交叉编译的静态二进制，194MB） | 3000 |
 | Ollama（qwen3:4b-instruct-2507-q4_K_M, bge-m3） | Windows 原生，GPU | 11434 |
+| llama.cpp `llama-server --reranking`（bge-reranker-v2-m3 Q8_0） | Windows 原生，GPU；网关经 Jina 类型渠道转发 `/v1/rerank` | 8012 |
 
 ## 问题与修复
 1. **Docker Hub 拉镜像失败**
@@ -54,6 +55,18 @@
 8. **知识库入库**
    - 第一次全量入库时进程中途被中断。重跑后只补齐剩下的 35 篇文档（868 个片段，向量化耗时 33s），再跑一次全部 119 篇都是 unchanged，用时 0.5s。依据是按文档内容哈希判断是否变化，每篇文档在一个事务内整篇替换。
    - 网关批量 embedding：一次请求 32 条，new-api 转为 Ollama `/api/embed` 的数组输入。
+9. **重排服务的选型与显存预算**（2026-11-26）
+   - Ollama 0.40 没有重排接口：`/api/rerank`、`/v1/rerank` 均返回 404。社区上传到 Ollama 的 reranker 模型只能当 embedding 模型调用，拿不到相关度分数。
+   - 改用 llama.cpp 的 `llama-server --reranking`：它提供 Jina 兼容的 `/v1/rerank`，正好是 new-api Jina 渠道转发的格式（`relay/channel/jina/adaptor.go` 把请求原样转发到 `{渠道地址}/v1/rerank`）。模型用 bge-reranker-v2-m3 的 GGUF（Q8_0，606MB），与向量模型 bge-m3 同属一个系列，支持中文问英文文档。
+   - Windows 上 llama.cpp 的 CUDA 版不带 cuBLAS / cudart（单独的 cudart 包 373MB）；Ollama 自带 CUDA 12 运行库（安装目录下 `lib/ollama/cuda_v12`），启动前把它加到 PATH 即可。
+   - 网关容器访问宿主机 `127.0.0.1:8012`：和 Ollama 一样用 `host.docker.internal`，Docker Desktop 会转发到宿主机回环地址，服务不必监听 0.0.0.0。
+   - 显存：qwen3 4B（8k 上下文）3.6GB + bge-m3 0.6GB + 重排模型 0.6GB，共 5.2GB，6GB 卡同时驻留。
+   - 耗时：服务启动后的第一个重排请求要等约 30 秒（预热），之后每次重排 20 条候选约 0.5 秒、50 条约 1.3 秒。
+   - 返回的是原始 logit（如 −4.6、−11.0），不是 0~1，只用于排序。重排分数也分不出"知识库没有答案"的题（6 道无答案题，阈值设到 0.3 只筛掉 1 道），所以不设重排阈值，拒答仍交给回答模型。
+10. **检索调参：先回放，再用完整评测定**（2026-11-26）
+   - 离线回放（固定检索词）的预测和完整评测很接近：接入重排前预测上下文证据召回 82.5%，接入后实测 81.7%；预测 20 候选 × 8 条上下文为 77.6%，实测 77.6%。被预测的运行里分别有 47% 和 34% 的检索用了不同的检索词。用同一次运行自己的检索词回放，结果与该次实测相同，这只能说明回放和 Agent 的做法一致。
+   - 20 × 8 召回少 4 个点，完整评测少答对 4 题（其中 1 题是裁判误判：两次回答都说知识库没有价格信息，一次判为拒答，一次判为编造），召回的下降基本如实传导到了正确率。回放不反映反思改写补充检索词的影响，召回和正确率也不是一一对应，所以回放只用来缩小范围。
+   - 上下文条数的影响是双向的：12 条时，一份 docker-compose 示例里的取值（120）干扰了对默认值（300）的回答；8 条时这一题反而答对。
 
 ## 当前可运行链路（2026-10-17 验证）
 - 知识库：119 篇文档（new-api 中文文档 78 篇，LangGraph 文档 41 篇），共 1912 个片段，片段长度 p50 为 625 字、p95 为 988 字；单次检索（含向量化）约 0.2–0.5s。

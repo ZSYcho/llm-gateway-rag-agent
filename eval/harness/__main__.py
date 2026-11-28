@@ -6,6 +6,7 @@
     python -m eval.harness report --tag baseline-routed
     python -m eval.harness compare --a baseline-routed --b temp0-routed
     python -m eval.harness retriever --tag baseline-routed      # retriever-only + threshold sweep
+    python -m eval.harness replay --tag final-routed-v2         # recorded queries, other retrieval settings
 
 Results go to eval/results/<tag>/: manifest.json, runs.jsonl, judged.jsonl,
 report.md. Runs and judgements are appended as they finish, so an
@@ -275,6 +276,25 @@ def cmd_retriever(args) -> None:
     print(f"\n-> {path.relative_to(ROOT)}")
 
 
+def cmd_replay(args) -> None:
+    """Replay a run's recorded search queries with exact ranking at several k (no model calls but embeddings)."""
+    from eval.harness import replay
+
+    out_dir = RESULTS_DIR / args.tag
+    runs = [r for r in _jsonl(out_dir / "runs.jsonl") if r["status"] == "ok"]
+    judged = {(j["case_id"], j["rep"]): j["key_points"]["correct"] for j in _jsonl(out_dir / "judged.jsonl")}
+    manifest = json.loads((out_dir / "manifest.json").read_text(encoding="utf-8"))
+    if args.grid:
+        text = replay.grid(args.tag, runs, manifest)
+        path = out_dir / "replay-grid.md"
+    else:
+        text = replay.replay(args.tag, runs, judged, manifest, rerank=args.rerank)
+        path = out_dir / "replay.md"
+    path.write_text(text, encoding="utf-8")
+    print(text)
+    print(f"-> {path.relative_to(ROOT)}")
+
+
 def cmd_faults(args) -> None:
     from eval.harness import chaos_proxy, dataset, faults
     from eval.harness.runner import Runner
@@ -348,6 +368,12 @@ def main() -> None:
     ret = sub.add_parser("retriever")
     ret.add_argument("--tag", required=True)
     ret.set_defaults(func=cmd_retriever)
+
+    rpl = sub.add_parser("replay")
+    rpl.add_argument("--tag", required=True)
+    rpl.add_argument("--rerank", action="store_true", help="also score candidates with the reranker (kb.rerank)")
+    rpl.add_argument("--grid", action="store_true", help="replay kb_retrieve for several candidate counts and context sizes")
+    rpl.set_defaults(func=cmd_replay)
 
     flt = sub.add_parser("faults")
     flt.add_argument("--tag", required=True)

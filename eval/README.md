@@ -15,6 +15,8 @@ $PY -m eval.harness judge --tag base-routed                  # 裁判打分（de
 $PY -m eval.harness report --tag base-routed                 # 生成 eval/results/base-routed/report.md
 $PY -m eval.harness compare --a base-routed --b base-cloud   # 同一批题的配对对比
 $PY -m eval.harness retriever --tag base-routed              # 检索器单独评测 + 相似度阈值扫描
+$PY -m eval.harness replay --tag final-routed-v2 --rerank    # 检索回放：用记录的检索词重放检索，比较加大 k 和几种重排方式
+$PY -m eval.harness replay --tag rerank-routed --grid        # 检索回放：候选数 × 上下文条数（与 Agent 的做法相同）
 $PY -m eval.harness faults --tag faults-base                 # 故障注入
 $PY -m eval.harness.security                                 # 访问控制检查（需要 Agent 服务和网关在运行）
 $PY -m eval.harness.summary                                  # 汇总所有实验 -> eval/results/SUMMARY.md
@@ -25,7 +27,8 @@ $PY -m eval.harness.calibrate score                          # 人工填好后�
 结果汇总见 [results/SUMMARY.md](results/SUMMARY.md)。
 
 - `--profile`：`routed`（查询生成和反思用本地模型，回答用云模型）、`cloud`（全部云模型）、`local`（全部本地模型）。
-- `--set key=value`：覆盖 Agent 配置，例如 `--set query_temperature=0`、`--set deepseek_thinking=disabled`、`--set retrieval_min_score=0.45`。
+- `--set key=value`：覆盖 Agent 配置，例如 `--set query_temperature=0`、`--set deepseek_thinking=disabled`、`--set retrieval_min_score=0.45`、`--set rerank_candidates=20 --set max_context_chunks=8`。
+- 检索回放只做检索：检索词的向量化和重排照常调用（经网关，或由 `RERANK_BASE_URL` 直连重排服务），不调用对话模型，几分钟跑完。
 - `--reps N`：每题重复 N 次，用于稳定性指标。
 - `eval/.env`（不入库）：`EVAL_RESTRICTED_API_KEY`（只允许本地模型的网关令牌），以及 `python -m eval.harness.agent_users` 生成的 Agent 身份密钥。
 
@@ -53,14 +56,14 @@ $PY -m eval.harness.calibrate score                          # 人工填好后�
 | 维度 | 指标 | 怎么算 |
 |---|---|---|
 | 1 结果 | 正确率、要点覆盖率、误拒率、无答案题编造率 | 裁判逐条判要点；有答案题覆盖率 ≥ 80% 且未拒答、无违规为正确；无答案题明确拒答为正确 |
-| 2 检索 | 证据召回（阈值前 / 过阈值后 / 进入上下文）、Hit、MRR、上下文精确率 | 由证据原文确定相关片段后直接计算，无需模型；三个位置对比可定位证据在哪一步丢失 |
+| 2 检索 | 证据召回（检索候选 / 过阈值和重排后 / 进入上下文）、Hit、MRR、上下文精确率 | 由证据原文确定相关片段后直接计算，无需模型；三个位置对比可定位证据在哪一步丢失 |
 | 3 证据 | 忠实度、矛盾率、引用覆盖率、引用精确率、编造引用数 | 裁判把回答拆成原子陈述，逐条对照回答模型实际看到的片段；编造引用由程序直接统计 |
 | 4 过程 | 节点序列合法、路由正确、查询数与轮数、重复查询、停止原因、过早停止、结构化输出重试 | 进程内运行图，用回调记录每个节点和每次模型调用 |
 | 5 稳定性与异常 | pass^k、pass@k、上下文 Jaccard、覆盖率标准差、答案语义相似度；失败按类型@阶段分类；故障注入下的存活率 | 同题重复运行；故障注入代理按 `X-Agent-Node` 对单个阶段注入 5xx、429、断连、超时、无法解析的输出 |
 | 6 成本与效率 | 每题费用、每个正确答案的成本、按云端价折算的费用、P50/P95 延迟、各节点耗时、推理 token 占比 | 费用取自网关的 `/api/agent_runs/:id/cost`，并与客户端记录的 token 数对账 |
 | 7 安全与权限 | 越权检索、泄露、注入成功（及被输出防护拦下的次数）、资源上限 | 用 canary 字符串和文档 ACL 程序化判定；协议层检查（无凭证与伪造会话、匿名访客之间及与其他身份之间的线程隔离、伪造分组、模型白名单、成本隔离）见 `security.py` |
 
-失败归因：每道答错的题按证据最先丢失的位置归因：检索未召回 → 被阈值截掉 → 未进入上下文 → 误拒 → 生成幻觉 → 生成不完整；运行失败的题记为 `infra:类型@阶段`。
+失败归因：每道答错的题按证据最先丢失的位置归因：检索未召回 → 被阈值截掉（开启重排时为被重排截掉）→ 未进入上下文 → 误拒 → 生成幻觉 → 生成不完整；运行失败的题记为 `infra:类型@阶段`。
 
 ## 可信度
 
@@ -68,4 +71,5 @@ $PY -m eval.harness.calibrate score                          # 人工填好后�
 - 裁判本身经过人工校准：按"是 / 部分 / 否"分层抽取 30 条要点判定做盲评（表格中不显示裁判结论），完全一致 83%，Cohen's κ = 0.75，"是否覆盖"一致 97%；按人工判定改判后没有题目的对错发生变化。
 - 比率都带 95% bootstrap 置信区间；不同配置的对比在同一批题上配对计算差值的置信区间，区间包含 0 时不视为有差异。
 - 题量有限（核心题 57 道），正确率的置信区间大约 ±12 个百分点，小的差异不下结论。
-- 故障注入代理按"节点 + 模型"匹配规则：例如只让云端回答模型返回 402，本地模型照常可用，和真实故障（云端账户欠费）一致。
+- 故障注入代理按"节点 + 模型"匹配规则：例如只让云端回答模型返回 402，本地模型照常可用，和真实故障（云端账户欠费）一致；只让重排模型返回 503，检索节点里的向量化照常可用。
+- 检索回放先核对自己能复现记录的命中（99.7%–100%），并在知识库指纹不一致时提示。它用的是固定的检索词，不反映反思改写补充检索词的影响。实测两次预测都很接近：接入重排前预测上下文证据召回 82.5%，接入后实测 81.7%；预测 20 条候选、8 条上下文为 77.6%，实测 77.6%。被预测的运行里分别有 47% 和 34% 的检索用了不同的检索词，所以这是真正的预测，20 × 8 的完全一致有巧合成分。用一次运行自己的检索词回放同样的设置，结果与该次实测相同（50 × 12：81.7%），这只说明回放和 Agent 的做法一致，不算预测。召回和正确率也不是一一对应，所以回放用来缩小范围，参数最后以完整评测为准。

@@ -58,7 +58,7 @@ def attribute_failure(case: dict, row: dict) -> str | None:
         if retrieval["evidence_recall_raw"] == 0:
             return "retrieval_miss"
         if retrieval["evidence_recall_gathered"] == 0:
-            return "threshold_cut"
+            return "rerank_cut" if retrieval.get("reranked") else "threshold_cut"
         if retrieval["evidence_recall_context"] == 0:
             return "context_selection"
     if judged["key_points"]["over_refusal"]:
@@ -113,8 +113,8 @@ def build(rows: list[dict], cases: dict[str, dict], manifest: dict) -> str:
     with_evidence = [r for r in ok if "evidence_recall_raw" in r["metrics"]["retrieval"]]
     out += ["## 2 检索", "", "| 指标 | 值 |", "|---|---|"]
     for key, label in [
-        ("evidence_recall_raw", "证据召回（阈值前 top-k）"),
-        ("evidence_recall_gathered", "证据召回（过阈值后）"),
+        ("evidence_recall_raw", "证据召回（检索候选，过阈值前）"),
+        ("evidence_recall_gathered", "证据召回（过阈值和重排后）"),
         ("evidence_recall_context", "证据召回（进入回答上下文）"),
         ("hit_context", "Hit（上下文中至少一条证据）"),
         ("mrr_context", "MRR（上下文）"),

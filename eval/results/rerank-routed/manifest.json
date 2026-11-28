@@ -1,0 +1,21 @@
+{
+  "tag": "rerank-routed",
+  "profile": "routed",
+  "overrides": {},
+  "reps": 1,
+  "suites": [
+    "core",
+    "robustness"
+  ],
+  "created_at": "2026-11-26T12:29:53+00:00",
+  "git": {
+    "root": "62455a3+dirty",
+    "agent": "fe17167+dirty",
+    "gateway": "c6df37e"
+  },
+  "kb_fingerprint": "0bd4133b22c0",
+  "kb_documents": 123,
+  "prompts_sha": "f77a32fa8fc3",
+  "dataset_sha": "c6f538ccf373",
+  "ollama_loaded_context": {}
+}

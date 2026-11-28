@@ -125,7 +125,8 @@ class Runner:
             "search_query": state.get("search_query") or [],
             "retrieval_log": state.get("retrieval_log") or [],
             "sources": [
-                {"chunk_id": int(s["short_url"][5:]), "score": s["score"], "corpus": s["corpus"], "query": s["query"]}
+                {"chunk_id": int(s["short_url"][5:]), "score": s["score"], "corpus": s["corpus"], "query": s["query"],
+                 **({"relevance": s["relevance"]} if "relevance" in s else {})}
                 for s in state.get("sources_gathered") or []
             ],
             "trace": trace,

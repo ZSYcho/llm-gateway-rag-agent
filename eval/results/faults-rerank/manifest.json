@@ -1,0 +1,23 @@
+{
+  "tag": "faults-rerank",
+  "profile": "routed",
+  "overrides": {},
+  "reps": 1,
+  "suites": [
+    "core"
+  ],
+  "created_at": "2026-11-26T13:02:35+00:00",
+  "git": {
+    "root": "62455a3+dirty",
+    "agent": "fe17167+dirty",
+    "gateway": "c6df37e"
+  },
+  "kb_fingerprint": "0bd4133b22c0",
+  "kb_documents": 123,
+  "prompts_sha": "f77a32fa8fc3",
+  "dataset_sha": "d6d0cde2e01c",
+  "ollama_loaded_context": {
+    "bge-m3:latest": 2048,
+    "qwen3:4b-instruct-2507-q4_K_M": 8192
+  }
+}

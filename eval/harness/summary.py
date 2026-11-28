@@ -25,7 +25,9 @@ CONFIG_TAGS = [
     ("hard-routed", "按节点路由 + 加固后"),
     ("final-routed", "按节点路由 + 加固 + 温度 0 + 关闭思考（注入防护前的提示词）"),
     ("final-cloud", "全部云端 + 加固 + 温度 0 + 关闭思考（注入防护前的提示词）"),
-    ("final-routed-v2", "**当前代码**：按节点路由 + 加固 + 温度 0 + 关闭思考 + 注入防护"),
+    ("final-routed-v2", "按节点路由 + 加固 + 温度 0 + 关闭思考 + 注入防护（重排前）"),
+    ("rerank-routed", "**当前代码**：上一行 + 重排（每个检索词 50 条候选，上下文 12 条）"),
+    ("rerank-20x8", "调参实验（未采用）：重排改为 20 条候选、上下文 8 条"),
 ]
 STABILITY_TAGS = [
     ("stab-t1", "查询/反思温度 1.0（上游默认）"),
@@ -107,7 +109,7 @@ def stability_table(cases: dict) -> list[str]:
 def faults_table() -> list[str]:
     from eval.harness.faults import SCENARIOS
 
-    tags = [t for t in ("faults-base", "faults-final") if (RESULTS_DIR / t / "faults.jsonl").exists()]
+    tags = [t for t in ("faults-base", "faults-final", "faults-rerank") if (RESULTS_DIR / t / "faults.jsonl").exists()]
     if not tags:
         return []
     lines = ["## 故障注入（每个场景 3 道题）", "",
@@ -159,6 +161,42 @@ def natural_failures() -> list[str]:
             f"全部是 {dict(failed)}，没有任何降级回答。加固后，故障注入复现同一故障（只让云端回答模型返回 402），3/3 由本地模型降级作答。", ""]
 
 
+def _tables(text: str, heading: str | None = None) -> list[str]:
+    """Table lines of a report, optionally only those under the ``## `` heading that contains ``heading``."""
+    lines = text.splitlines()
+    if heading is not None:
+        start = next((i for i, line in enumerate(lines) if line.startswith("## ") and heading in line), None)
+        if start is None:
+            return []
+        rest = lines[start + 1:]
+        end = next((i for i, line in enumerate(rest) if line.startswith("## ")), len(rest))
+        lines = rest[:end]
+    return [line for line in lines if line.startswith("|")]
+
+
+def replay_section() -> list[str]:
+    """Offline replays of recorded search queries (eval.harness.replay): retrieval only, no chat model."""
+    parts = [
+        ("final-routed-v2/replay.md", "加大 k", "重排前的检索词，只加大 k（不重排）"),
+        ("final-routed-v2/replay.md", "重排", "重排前的检索词，几种重排方式（上下文 12 条）"),
+        ("rerank-routed/replay-grid.md", None, "重排后的检索词，候选数 × 上下文条数（与 Agent 的做法相同）"),
+    ]
+    note = (
+        "回放的预测和完整评测很接近：接入重排前预测上下文证据召回 82.5%，接入后实测 81.7%；"
+        "预测 20 条候选、8 条上下文为 77.6%，实测 77.6%（被预测的运行里分别有 47% 和 34% 的检索用了不同的检索词）。"
+        "回放用固定的检索词，不反映反思改写补充检索词的影响，召回和正确率也不是一一对应，所以参数最后以完整评测为准。"
+    )
+    lines = ["## 检索回放（离线：用评测记录的检索词重放检索，不调用对话模型）", "", note, ""]
+    found = False
+    for path, heading, label in parts:
+        file = RESULTS_DIR / path
+        tables = _tables(file.read_text(encoding="utf-8"), heading) if file.exists() else []
+        if tables:
+            found = True
+            lines += [f"{label}（`eval/results/{path}`）：", ""] + tables + [""]
+    return lines if found else []
+
+
 SAFETY_TAGS = [
     ("base-routed", "按节点路由（基线，开思考）", "防护前"),
     ("base-cloud", "全部云端（基线，开思考）", "防护前"),
@@ -167,6 +205,7 @@ SAFETY_TAGS = [
     ("final-cloud", "全部云端（关思考）", "防护前"),
     ("safety-routed", "按节点路由（关思考）", "防护后，每题 3 次"),
     ("safety-cloud", "全部云端（关思考）", "防护后，每题 3 次"),
+    ("safety-rerank", "按节点路由 + 重排（关思考）", "防护后，每题 3 次"),
 ]
 INJECTION_CATEGORIES = ("indirect-injection",)
 
@@ -201,6 +240,7 @@ def main() -> None:
     cases = dataset.load_all()
     lines = ["# 评测汇总", "", "各配置的完整报告见 `eval/results/<tag>/report.md`；指标定义见 `eval/README.md`。", ""]
     lines += config_table(cases)
+    lines += replay_section()
     lines += stability_table(cases)
     lines += faults_table()
     lines += natural_failures()

@@ -25,6 +25,8 @@ SCENARIOS = [
     {"id": "answer-429", "label": "云端回答模型被限流 429", "rules": {"finalize_answer": {"fault": "status", "status": 429, "model": "deepseek-flash"}}},
     {"id": "answer-402", "label": "云端账户余额不足 402", "rules": {"finalize_answer": {"fault": "status", "status": 402, "model": "deepseek-flash"}}},
     {"id": "embed-503", "label": "向量化接口 503", "rules": {"kb_retrieve": {"fault": "status", "status": 503}}},
+    # Only the reranker fails; retrieval itself works and falls back to cosine order.
+    {"id": "rerank-503", "label": "重排接口 503", "rules": {"kb_retrieve": {"fault": "status", "status": 503, "model": "bge-reranker-v2-m3"}}},
     {"id": "query-drop", "label": "查询生成连接中断", "rules": {"generate_query": {"fault": "drop"}}},
     {"id": "reflection-garbage", "label": "反思输出无法解析", "rules": {"reflection": {"fault": "garbage"}}},
     {"id": "reflection-slow", "label": "反思节点慢 25 秒", "rules": {"reflection": {"fault": "delay", "seconds": 25}}},
